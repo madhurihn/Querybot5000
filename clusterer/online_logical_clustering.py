@@ -13,6 +13,7 @@ import random
 import pickle
 import re
 import math
+from dtw import dtw
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
@@ -93,8 +94,13 @@ def LoadData(input_path):
 
     return min_date, max_date, data, total_queries, templates
 
-def Similarity(x, y):
-    return np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y) + 1e-6)
+#def Similarity(x, y):
+    #return np.dot(x, y) / (np.linalg.norm(x) * np.linalg.norm(y) + 1e-6)
+    
+def DTW(x,y) :
+    dist, cost, acc, path = dtw(x, y, dist=lambda x, y: norm(x - y, ord=1))
+    print('Minimum distance found:', dist)
+    return dist
 
 def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluster, centers,
         cluster_totals, total_queries, cluster_sizes, rho, vector_dict):
@@ -126,7 +132,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
         if new_ass[t] != -1:
             center = centers[new_ass[t]]
             #print(cnt, new_ass[t], Similarity(data[t], center, index))
-            if cluster_sizes[new_ass[t]] == 1 or Similarity(vector_dict[t], center) > rho:
+            if cluster_sizes[new_ass[t]] == 1 or DTW(vector_dict[t], center) > rho:
                 continue
 
         # the template is eliminated from the original cluster
@@ -147,7 +153,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
         if nbrs != None:
             # whether this template is similar to the center of an existing cluster
             nbr = nbrs.kneighbors(normalize([vector_dict[t]]), return_distance = False)[0][0]
-            if Similarity(vector_dict[t], centers[clusters[nbr]]) > rho:
+            if DTW(vector_dict[t], centers[clusters[nbr]]) > rho:
                 new_cluster = clusters[nbr]
 
         if new_cluster != None:
@@ -212,7 +218,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
             while root[nbr] != -1:
                 nbr = root[nbr]
 
-            if c1 != clusters[nbr] and Similarity(centers[c1], centers[clusters[nbr]]) > rho:
+            if c1 != clusters[nbr] and DTW(centers[c1], centers[clusters[nbr]]) > rho:
                 c = clusters[nbr]
 
         if c != None:
