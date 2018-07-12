@@ -115,7 +115,7 @@ def DTW(x,y,index):
         distyy += dtw(yi, yi, dist=lambda yi, yi: norm(yi - yi, ord=1))
         distxy += dtw(xi, yi, dist=lambda xi, yi: norm(xi - yi, ord=1))
         
-     return distxy / (math.sqrt(distxx * distyy ) + 1e-6)   
+     return distxy / (math.sqrt(distxx * distyy ))   
         
 
     
