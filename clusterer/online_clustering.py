@@ -14,6 +14,7 @@ import pickle
 import re
 import math
 
+from  dtw  import dtw
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import matplotlib.dates as mpdates
@@ -92,17 +93,33 @@ def LoadData(input_path):
 
     return min_date, max_date, data, total_queries, templates
 
-def Similarity(x, y, index):
-    sumxx, sumxy, sumyy = 0, 0, 0
+#def Similarity(x, y, index):
+    #sumxx, sumxy, sumyy = 0, 0, 0
+    #for i in index:
+        #xi = x[i] if i in x else 0
+        #yi = y[i] if i in y else 0
+
+        #sumxx += xi * xi
+        #sumyy += yi * yi
+        #sumxy += xi * yi
+
+    #return sumxy / (math.sqrt(sumxx * sumyy) + 1e-6)
+
+def DTW(x,y,index):
+    distxx, distxy, distyy = 0,0,0
     for i in index:
         xi = x[i] if i in x else 0
         yi = y[i] if i in y else 0
+        
+        distxx += dtw(xi, xi, dist=lambda xi, xi: norm(xi - xi, ord=1))
+        distyy += dtw(yi, yi, dist=lambda yi, yi: norm(yi - yi, ord=1))
+        distxy += dtw(xi, yi, dist=lambda xi, yi: norm(xi - yi, ord=1))
+        
+     return distxy / (math.sqrt(distxx * distyy ) + 1e-6)   
+        
 
-        sumxx += xi * xi
-        sumyy += yi * yi
-        sumxy += xi * yi
+    
 
-    return sumxy / (math.sqrt(sumxx * sumyy) + 1e-6)
 
 def ExtractSample(x, index):
     v = []
@@ -174,7 +191,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
         if new_ass[t] != -1:
             center = centers[new_ass[t]]
             #print(cnt, new_ass[t], Similarity(data[t], center, index))
-            if cluster_sizes[new_ass[t]] == 1 or Similarity(data[t], center, index) > rho:
+            if cluster_sizes[new_ass[t]] == 1 or DTW(data[t], center, index) > rho:
                 continue
 
         # the template is eliminated from the original cluster
@@ -197,12 +214,12 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
         if USE_KNN == False or nbrs == None:
             for cluster in centers.keys():
                 center = centers[cluster]
-                if Similarity(data[t], center, index) > rho:
+                if DTW(data[t], center, index) > rho:
                     new_cluster = cluster
                     break
         else:
             nbr = nbrs.kneighbors(normalize([ExtractSample(data[t], index)]), return_distance = False)[0][0]
-            if Similarity(data[t], centers[clusters[nbr]], index) > rho:
+            if DTW(data[t], centers[clusters[nbr]], index) > rho:
                 new_cluster = clusters[nbr]
 
         if new_cluster != None:
@@ -262,7 +279,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
         if USE_KNN == False or nbrs == None:
             for j in range(i + 1, len(clusters)):
                 c2 = clusters[j]
-                if Similarity(centers[c1], centers[c2], index) > rho:
+                if DTW(centers[c1], centers[c2], index) > rho:
                     c = c2
                     break
         else:
@@ -276,7 +293,7 @@ def AdjustCluster(min_date, current_date, next_date, data, last_ass, next_cluste
             while root[nbr] != -1:
                 nbr = root[nbr]
 
-            if c1 != clusters[nbr] and Similarity(centers[c1], centers[clusters[nbr]], index) > rho:
+            if c1 != clusters[nbr] and DTW(centers[c1], centers[clusters[nbr]], index) > rho:
                 c = clusters[nbr]
 
         if c != None:
